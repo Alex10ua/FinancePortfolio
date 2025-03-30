@@ -1,0 +1,61 @@
+services:
+  mongodb:
+    container_name: mongodb
+    image: "mongo:8.0.5"
+    restart: on-failure
+    environment:
+      - "MONGO_INITDB_DATABASE=portfolio"
+      - "MONGO_INITDB_ROOT_PASSWORD=secret"
+      - "MONGO_INITDB_ROOT_USERNAME=root"
+    ports:
+      - "27017:27017"
+    volumes:
+      - "mongodb:/data/db"
+    networks:
+      - portfolio-network
+  portfolio-scripts-backend:
+    container_name: portfolio-scripts-backend
+    image: "portfolio-scripts-backend-image:latest"
+    build:
+      context: ./portfolio-scripts-backend
+      dockerfile: Dockerfile
+    restart: on-failure
+    ports:
+      - "5000:5000"
+    networks:
+      - portfolio-network 
+  
+  portfolio-frontend:
+    container_name: portfolio-frontend-app
+    image: "portfolio-frontend-image:latest"
+    build:
+      context: ./portfolio-frontend
+      dockerfile: Dockerfile
+    restart: on-failure
+    ports:
+      - "3000:3000"
+    networks:
+      - portfolio-network
+    depends_on:
+      - portfolio-backend
+
+  portfolio-backend:
+    container_name: portfolio-backend-app
+    image: "portfolio-backend-image:latest"
+    build:
+      context: ./portfolio-backend
+      dockerfile: Dockerfile
+    restart: on-failure
+    ports:
+      - "8080:8080"
+    networks:
+      - portfolio-network
+    depends_on:
+      - mongodb
+
+volumes:
+  mongodb:
+   
+networks:
+  portfolio-network:
+    driver: bridge
