@@ -1,0 +1,8 @@
+docker-compose up -d --build
+# If you encounter issues with Docker build cache, you can clear it using the following commands:
+Clear the Docker builder cache:
+docker builder prune --all
+Optionally, clear unused images and containers:
+docker system prune --all
+Re-run your Docker build command, possibly with the --no-cache flag:
+docker-compose build --no-cache

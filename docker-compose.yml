@@ -33,7 +33,7 @@ services:
       dockerfile: Dockerfile
     restart: on-failure
     ports:
-      - "3000:3000"
+      - "3001:3000"
     networks:
       - portfolio-network
     depends_on:
