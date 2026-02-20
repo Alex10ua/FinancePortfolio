@@ -1,7 +1,7 @@
 services:
   mongodb:
     container_name: mongodb
-    image: "mongo:8.0.5"
+    image: "mongo:latest"
     restart: on-failure
     environment:
       - "MONGO_INITDB_DATABASE=portfolio"
@@ -29,11 +29,11 @@ services:
     container_name: portfolio-frontend-app
     image: "portfolio-frontend-image:latest"
     build:
-      context: ./portfolio-frontend
+      context: ./portfolio-app-frontend
       dockerfile: Dockerfile
     restart: on-failure
     ports:
-      - "3001:3000"
+      - "3001:80"
     networks:
       - portfolio-network
     depends_on:
@@ -43,11 +43,17 @@ services:
     container_name: portfolio-backend-app
     image: "portfolio-backend-image:latest"
     build:
-      context: ./portfolio-backend
+      context: ./portfolio-app-backend
       dockerfile: Dockerfile
     restart: on-failure
     ports:
       - "8080:8080"
+    environment:
+      - SPRING_DATA_MONGODB_HOST=mongodb
+      - SPRING_DATA_MONGODB_USERNAME=root
+      - SPRING_DATA_MONGODB_PASSWORD=secret
+      - SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE=admin
+      - APP_REST_BASE_URL=http://portfolio-scripts-backend:5000
     networks:
       - portfolio-network
     depends_on:
