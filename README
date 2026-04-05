@@ -6,3 +6,5 @@ Optionally, clear unused images and containers:
 docker system prune --all
 Re-run your Docker build command, possibly with the --no-cache flag:
 docker-compose build --no-cache
+
+docker compose up -d --build portfolio-frontend

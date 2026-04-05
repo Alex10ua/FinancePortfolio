@@ -22,6 +22,11 @@ services:
     restart: on-failure
     ports:
       - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://root:secret@mongodb:27017/
+      - MASSIVE_API_KEY=${MASSIVE_API_KEY}
+      - MASSIVE_BASE_URL=${MASSIVE_BASE_URL}
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
     networks:
       - portfolio-network 
   
