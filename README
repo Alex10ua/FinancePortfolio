@@ -8,3 +8,9 @@ Re-run your Docker build command, possibly with the --no-cache flag:
 docker-compose build --no-cache
 
 docker compose up -d --build portfolio-frontend
+
+
+To backup a MongoDb database, you can use the following script. Make sure to replace the placeholders with your actual MongoDB connection details and desired backup location.
+
+chmod +x backup-mongo.sh
+./backup-mongo.sh
