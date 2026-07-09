@@ -14,3 +14,21 @@ To backup a MongoDb database, you can use the following script. Make sure to rep
 
 chmod +x backup-mongo.sh
 ./backup-mongo.sh
+
+
+Market-data service (Flask, port 5000) — Swagger UI for calling endpoints manually:
+
+http://localhost:5000/apidocs        Swagger UI ("Try it out" on every endpoint)
+http://localhost:5000/apispec.json   Raw OpenAPI spec
+
+Endpoints:
+POST /update/yahoo               Update market data via Yahoo Finance (body {"ticker": "AAPL"} = single; empty body = debounced batch over tickers queue)
+POST /update/auto                Same, auto-routed by asset type (CRYPTO holding -> CoinGecko, else Yahoo)
+POST /update/massive             Same, Massive API provider
+POST /update/crypto              Same, CoinGecko provider (crypto tickers, e.g. BTC or BTC-USD; no API key)
+POST /update/full                Full update for one ticker: market data + daily + monthly price history (body {"ticker": "AAPL"} required)
+POST /update/sharesOutstanding   Backfill sharesOutstanding (body {"ticker": "AAPL"} = single; empty body = all marketData docs)
+POST /update/exchangeRates       Fetch EUR FX rates from ECB
+POST /history/refresh/<ticker>   Refresh daily price history for a ticker
+
+Backend Swagger UI (Spring Boot): http://localhost:8080/swagger-ui.html
