@@ -27,8 +27,13 @@ services:
       - MASSIVE_API_KEY=${MASSIVE_API_KEY}
       - MASSIVE_BASE_URL=${MASSIVE_BASE_URL}
       - FINNHUB_API_KEY=${FINNHUB_API_KEY}
+      # yfinance timezone cache — on a volume so a container recreate doesn't make
+      # every ticker pay an extra Yahoo request for its exchange timezone again
+      - YF_CACHE_DIR=/cache/yfinance
+    volumes:
+      - yfinance-cache:/cache
     networks:
-      - portfolio-network 
+      - portfolio-network
   
   portfolio-frontend:
     container_name: portfolio-frontend-app
@@ -66,6 +71,7 @@ services:
 
 volumes:
   mongodb:
+  yfinance-cache:
    
 networks:
   portfolio-network:
