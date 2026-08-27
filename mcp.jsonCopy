@@ -1,0 +1,25 @@
+{
+    "mcpServers": {
+        "portfolio": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "--network",
+                "financeportfolio_portfolio-network",
+                "-e",
+                "PORTFOLIO_API_BASE_URL=http://portfolio-backend:8080",
+                "-e",
+                "PORTFOLIO_USERNAME",
+                "-e",
+                "PORTFOLIO_PASSWORD",
+                "portfolio-mcp-image:latest"
+            ],
+            "env": {
+                "PORTFOLIO_USERNAME": "username",
+                "PORTFOLIO_PASSWORD": "password"
+            }
+        }
+    }
+}

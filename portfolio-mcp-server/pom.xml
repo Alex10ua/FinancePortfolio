@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.1.1</version>
+		<relativePath/>
+	</parent>
+	<groupId>com.dev</groupId>
+	<artifactId>portfolio-mcp-server</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>portfolio-mcp-server</name>
+	<description>Read-only MCP server exposing FinancePortfolio data to an AI chat client over stdio</description>
+
+	<properties>
+		<java.version>25</java.version>
+		<!-- Spring AI 2.x is the line that targets Spring Boot 4.1 / Framework 7,
+		     which is what portfolio-app-backend runs. Do not drop to 1.x here. -->
+		<spring-ai.version>2.0.1</spring-ai.version>
+	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.ai</groupId>
+				<artifactId>spring-ai-bom</artifactId>
+				<version>${spring-ai.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<dependencies>
+		<!-- The webmvc flavour carries BOTH transports: stdio (the default profile,
+		     for a client that spawns this as a subprocess) and Streamable HTTP (the
+		     "http" profile, for the compose service). The webmvc transport
+		     auto-configuration is @ConditionalOnWebApplication, so it backs off
+		     cleanly under spring.main.web-application-type=none in stdio mode. -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+		</dependency>
+
+		<!-- Brings spring-web (RestClient), Jackson and Tomcat. Tomcat only starts
+		     under the "http" profile; stdio mode sets web-application-type=none. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<!-- JDK 25 warns when a Java agent is loaded dynamically (Mockito's Byte
+			     Buddy agent, via spring-boot-starter-test) and a future JDK will
+			     refuse it. Same opt-in the backend pom uses. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>-XX:+EnableDynamicAgentLoading</argLine>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

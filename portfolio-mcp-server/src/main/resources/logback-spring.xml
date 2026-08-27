@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  stdout carries the MCP JSON-RPC stream. There is deliberately NO appender
+  targeting it: one log line on stdout corrupts the protocol and the client
+  reports an opaque parse error rather than the real cause.
+
+  Everything goes to stderr instead, which MCP leaves free for exactly this and
+  which clients capture into their own logs. Do not add a stdout appender, and
+  do not switch this back to the `logging.pattern.console=` trick — an empty
+  pattern is not valid Logback config ("Empty or null pattern") and a file
+  appender fails outright under the container's non-root user, which has no
+  write access to the working directory.
+-->
+<configuration>
+    <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="WARN">
+        <appender-ref ref="STDERR"/>
+    </root>
+</configuration>

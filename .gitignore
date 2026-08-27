@@ -1,3 +1,8 @@
 .env
 portfolio-design/
 /backups/*
+/mcp.json
+mcp.json
+target/
+classes/
+/portfolio-mcp-server/target/classes/application.properties

@@ -59,20 +59,49 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATA_MONGODB_HOST=mongodb
-      - SPRING_DATA_MONGODB_USERNAME=root
-      - SPRING_DATA_MONGODB_PASSWORD=secret
-      - SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE=admin
+      - SPRING_MONGODB_HOST=mongodb
+      - SPRING_MONGODB_USERNAME=root
+      - SPRING_MONGODB_PASSWORD=secret
+      - SPRING_MONGODB_AUTHENTICATION_DATABASE=admin
       - APP_REST_BASE_URL=http://portfolio-scripts-backend:5000
     networks:
       - portfolio-network
     depends_on:
       - mongodb
 
+  # Read-only MCP server, running in Streamable HTTP mode (SPRING_PROFILES_ACTIVE=http).
+  # Clients connect to  http://localhost:8081/mcp  — no subprocess to spawn.
+  #
+  # Published on 127.0.0.1 deliberately: the MCP endpoint has NO authentication of
+  # its own, so anyone able to reach the port could read every portfolio this
+  # server's account owns. Do not widen this to 0.0.0.0 without putting auth in
+  # front of it.
+  #
+  # The same image also runs in stdio mode — that is the default profile, used when
+  # a client spawns it with `docker run -i`. See portfolio-mcp-server/README.md.
+  portfolio-mcp:
+    container_name: portfolio-mcp
+    image: "portfolio-mcp-image:latest"
+    build:
+      context: ./portfolio-mcp-server
+      dockerfile: Dockerfile
+    restart: on-failure
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=http
+      - PORTFOLIO_API_BASE_URL=http://portfolio-backend:8080
+      - PORTFOLIO_USERNAME=${PORTFOLIO_USERNAME:-}
+      - PORTFOLIO_PASSWORD=${PORTFOLIO_PASSWORD:-}
+    networks:
+      - portfolio-network
+    depends_on:
+      - portfolio-backend
+
 volumes:
   mongodb:
   yfinance-cache:
-   
+
 networks:
   portfolio-network:
     driver: bridge

@@ -1,4 +1,5 @@
 docker-compose up -d --build
+docker compose up -d --build portfolio-frontend portfolio-backend
 # If you encounter issues with Docker build cache, you can clear it using the following commands:
 Clear the Docker builder cache:
 docker builder prune --all
@@ -32,3 +33,69 @@ POST /update/exchangeRates       Fetch EUR FX rates from ECB
 POST /history/refresh/<ticker>   Refresh daily price history for a ticker
 
 Backend Swagger UI (Spring Boot): http://localhost:8080/swagger-ui.html
+
+
+AI access (read-only MCP server)
+
+Gives an AI chat client read-only access to portfolios, positions, performance,
+dividends and ticker research.
+
+Runs as a compose service in HTTP mode:
+
+docker compose up -d --build portfolio-mcp        # -> http://localhost:8081/mcp
+
+Set PORTFOLIO_USERNAME and PORTFOLIO_PASSWORD in .env first (same login as
+http://localhost:3001). Client config is then just:
+
+{ "mcpServers": { "portfolio": { "type": "http", "url": "http://localhost:8081/mcp" } } }
+
+The endpoint has NO authentication of its own, so compose publishes it on 127.0.0.1
+only. Do not change that to 0.0.0.0 without putting auth in front of it — anyone who
+reaches the port gets read access to every portfolio the configured account owns.
+
+The same image also runs in stdio mode (default Spring profile) when a client spawns
+it with "docker run -i"; use that if you would rather nothing listened at all.
+
+For stdio, mcp.json in this directory is the source of truth; register-mcp.mjs
+writes it into Claude Code and/or Codex (they store MCP config differently):
+
+node register-mcp.mjs --list        Show what is registered today
+node register-mcp.mjs --dry-run     Show the changes without writing
+node register-mcp.mjs               Register with both clients (user scope)
+node register-mcp.mjs --scope local Register for this project only
+
+It backs up every file it edits and keeps unrelated entries. Use ${PORTFOLIO_USERNAME}
+and ${PORTFOLIO_PASSWORD} in mcp.json and export them in your shell rather than writing
+credentials into the file; note Codex cannot expand variables, so the script resolves
+them and the password ends up in plain text in ~/.codex/config.toml.
+
+Full setup, the tool list and troubleshooting: portfolio-mcp-server/README.md
+
+It authenticates with the same username and password used at http://localhost:3001,
+supplied through the MCP client's env block. It cannot modify anything: the HTTP client
+exposes only GET, every backend endpoint it calls is a GET, and each tool declares
+readOnlyHint.
+
+Backing REST layer (session auth required, same as the rest of /api/v1):
+GET /api/v1/ai/portfolios                       Portfolios + currencies in use
+GET /api/v1/ai/{portfolioId}/snapshot           Positions, cash, totals, realized P&L
+GET /api/v1/ai/{portfolioId}/positions          Holdings only
+GET /api/v1/ai/{portfolioId}/diversification    By country / sector / industry / ticker
+GET /api/v1/ai/{portfolioId}/tags               Holdings grouped by user tag
+GET /api/v1/ai/{portfolioId}/transactions       Filtered, paged history
+GET /api/v1/ai/{portfolioId}/performance        Invested, value, P&L, XIRR, series
+GET /api/v1/ai/{portfolioId}/history            Month-end value per currency
+GET /api/v1/ai/{portfolioId}/realized-pnl       FIFO realized P&L per currency
+GET /api/v1/ai/{portfolioId}/dividends          Received, monthly/quarterly/yearly
+GET /api/v1/ai/{portfolioId}/dividend-calendar  Expected income by month
+GET /api/v1/ai/{portfolioId}/watchlist          Watchlist + yield percentile ranking
+GET /api/v1/ai/ticker/{ticker}                  Market data + key statistics
+GET /api/v1/ai/ticker/{ticker}/historical       Dividends, splits, share counts, growth
+GET /api/v1/ai/ticker/{ticker}/fundamentals     SEC EDGAR financials
+GET /api/v1/ai/fx-rates                         Currency -> units per 1 EUR
+GET /api/v1/ai/conventions                      How to read every response
+
+Every response is {data, fxRates, baseCurrency, conversionFormula, notes}. Amounts stay
+in each asset's native currency and are never converted, matching the rest of the API;
+fxRates carries synthetic GBp/GBx entries (GBP x 100) so pence quotes convert with the
+same formula as everything else.
