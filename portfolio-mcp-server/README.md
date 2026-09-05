@@ -14,11 +14,19 @@ One image, transport chosen by Spring profile:
 | Mode | Profile | How it runs | Client config |
 |---|---|---|---|
 | **HTTP** (default in compose) | `http` | Long-lived `portfolio-mcp` service on `127.0.0.1:8081` | `{"type":"http","url":"http://localhost:8081/mcp"}` |
-| **stdio** | none | Client spawns it per session via `docker run -i` | `command: docker`, see below |
+| **stdio** | none | Client execs a JVM per session inside the `portfolio-mcp-stdio` service | `command: docker`, see below |
 
 HTTP is the simpler path — start the stack and it is there. stdio suits a client
 on a machine that cannot reach the port, or when you would rather not have
 anything listening at all.
+
+Both are compose services now. `portfolio-mcp-stdio` runs no server of its own —
+its command is an idle `tail -f /dev/null`, and the client starts its own JVM in
+it with `docker exec -i` per session. A stdio server must own the *client's*
+stdin, which a compose-managed process cannot be handed, so the container is a
+stable target rather than the server itself: one named container instead of a
+throwaway `docker run` container per session, one place that owns the network
+attachment, and credentials that can live in `.env` like every other service.
 
 > The HTTP endpoint has **no authentication of its own**. The compose mapping
 > publishes it on `127.0.0.1` only, so it is not reachable from the LAN. Do not
@@ -54,13 +62,32 @@ Then point the client at it:
 
 No credentials in the client config — the server holds them, from `.env`.
 
-## Build only (for stdio use)
+## Run it over stdio (compose)
+
+```bash
+docker compose up -d --build portfolio-mcp-stdio    # idle holder container + backend
+docker ps --filter name=portfolio-mcp-stdio         # command reads "tail -f /dev/null"
+```
+
+Nothing is listening and no JVM is running yet — the client starts one per
+session. Smoke-test the exec path by hand:
+
+```bash
+printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}' \
+  | docker exec -i portfolio-mcp-stdio java -jar app.jar 2>/dev/null
+```
+
+A `serverInfo` line on stdout means the transport is fine.
+
+## Build only
 
 The repo has no host JDK, so build the image:
 
 ```bash
 docker compose build portfolio-mcp
 ```
+
+Both MCP services share `portfolio-mcp-image:latest`, so either name builds it.
 
 Or, with a JDK 25 available, a plain jar:
 
@@ -70,13 +97,6 @@ mvn clean package
 ```
 
 ## Register with a client
-
-Find the Compose network name first (Compose prefixes it with the project
-directory name):
-
-```bash
-docker network ls --filter name=portfolio-network --format '{{.Name}}'
-```
 
 ### Docker (no host JDK needed)
 
@@ -88,12 +108,12 @@ docker network ls --filter name=portfolio-network --format '{{.Name}}'
     "portfolio": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm",
-        "--network", "financeportfolio_portfolio-network",
-        "-e", "PORTFOLIO_API_BASE_URL=http://portfolio-backend:8080",
+        "exec", "-i",
         "-e", "PORTFOLIO_USERNAME",
         "-e", "PORTFOLIO_PASSWORD",
-        "portfolio-mcp-image:latest"
+        "portfolio-mcp-stdio",
+        "java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0",
+        "-jar", "app.jar"
       ],
       "env": {
         "PORTFOLIO_USERNAME": "your-username",
@@ -104,8 +124,28 @@ docker network ls --filter name=portfolio-network --format '{{.Name}}'
 }
 ```
 
-`-i` is required — without it the container gets no stdin and the client sees the
-server die immediately.
+Three things that look optional and are not:
+
+- `-i` — without it the JVM gets no stdin and the client sees the server die
+  immediately.
+- `app.jar`, **relative**. The image's WORKDIR is `/app` and `docker exec` starts
+  there, so the relative name resolves. Write `/app/app.jar` and it still works
+  from a client, but breaks the moment you paste the command into Git Bash on
+  Windows, which rewrites a leading `/` into `C:/Program Files/Git/...` and the
+  JVM reports `Unable to access jarfile`.
+- No `--network` and no `PORTFOLIO_API_BASE_URL`. The container is already on
+  `portfolio-network` and already knows the backend URL, both from compose.
+
+The two `-e` flags forward the values from the client's own environment, and
+exec-level env wins over the container's. Drop them (and the `env` block) once
+`PORTFOLIO_USERNAME` / `PORTFOLIO_PASSWORD` are set in the root `.env` — then no
+credentials sit in any client config, same as the HTTP mode. Note the shipped
+`.env` has both keys **present but empty**, which is not the same as set: with
+empty values the login fails, so either fill them in or keep the `-e` flags.
+
+Old `docker run -i --rm … portfolio-mcp-image:latest` registrations still work,
+they just leave a randomly-named container per session; switch them to the exec
+form and delete the strays with `docker rm -f <name>`.
 
 ### Host JVM
 

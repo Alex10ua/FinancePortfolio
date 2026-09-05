@@ -77,8 +77,8 @@ services:
   # server's account owns. Do not widen this to 0.0.0.0 without putting auth in
   # front of it.
   #
-  # The same image also runs in stdio mode — that is the default profile, used when
-  # a client spawns it with `docker run -i`. See portfolio-mcp-server/README.md.
+  # The same image also runs in stdio mode — see the portfolio-mcp-stdio service
+  # below and portfolio-mcp-server/README.md.
   portfolio-mcp:
     container_name: portfolio-mcp
     image: "portfolio-mcp-image:latest"
@@ -90,6 +90,44 @@ services:
       - "127.0.0.1:8081:8081"
     environment:
       - SPRING_PROFILES_ACTIVE=http
+      - PORTFOLIO_API_BASE_URL=http://portfolio-backend:8080
+      - PORTFOLIO_USERNAME=${PORTFOLIO_USERNAME:-}
+      - PORTFOLIO_PASSWORD=${PORTFOLIO_PASSWORD:-}
+    networks:
+      - portfolio-network
+    depends_on:
+      - portfolio-backend
+
+  # Same image, stdio transport (default profile) — for clients that speak JSON-RPC
+  # over a subprocess's stdin/stdout instead of HTTP.
+  #
+  # The container itself runs NO server: its command is an idle `tail -f /dev/null`.
+  # A stdio server has to own the *client's* stdin, and a compose-managed process
+  # cannot be handed that, so the client starts its own JVM per session inside this
+  # container:
+  #
+  #   docker exec -i portfolio-mcp-stdio java -jar /app/app.jar
+  #
+  # That is what mcp.json registers. The point of doing it here rather than with
+  # `docker run -i --rm` is a stable, named target: no throwaway container with a
+  # random name per session, one place that owns the network attachment, and no
+  # credentials in the client config — the exec'd JVM inherits the environment
+  # below, which comes from the root .env like every other service.
+  #
+  # `docker compose run --rm -T portfolio-mcp-stdio java -jar /app/app.jar` works
+  # from the same definition, but that is the random-named-container path again.
+  portfolio-mcp-stdio:
+    container_name: portfolio-mcp-stdio
+    image: "portfolio-mcp-image:latest"
+    build:
+      context: ./portfolio-mcp-server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # Alpine's busybox `sleep` has no `infinity`, hence tail.
+    entrypoint: ["tail", "-f", "/dev/null"]
+    # No ports: stdio listens on nothing. No SPRING_PROFILES_ACTIVE either — the
+    # default profile is the stdio one.
+    environment:
       - PORTFOLIO_API_BASE_URL=http://portfolio-backend:8080
       - PORTFOLIO_USERNAME=${PORTFOLIO_USERNAME:-}
       - PORTFOLIO_PASSWORD=${PORTFOLIO_PASSWORD:-}
