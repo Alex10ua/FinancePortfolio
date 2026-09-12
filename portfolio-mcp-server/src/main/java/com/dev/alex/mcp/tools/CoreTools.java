@@ -67,6 +67,28 @@ public class CoreTools {
         return api.get("/api/v1/ai/{portfolioId}/positions", portfolioId);
     }
 
+    @McpTool(name = "get_allocation_targets",
+            description = """
+                    The target weight the user set for each ticker — how big they want that holding to be \
+                    as a percent of the portfolio — next to the weight it actually carries, the drift \
+                    between the two, and the buy or sell that would close it (deltaValue in the position's \
+                    own currency, deltaShares in shares). Use this for "am I overweight X", "what should I \
+                    buy next", or any question about intended position size; it is the only place the \
+                    targets are exposed. Rows are ordered by how far they have drifted, targets on tickers \
+                    the user no longer holds are included, and status is ON_TARGET, UNDERWEIGHT, \
+                    OVERWEIGHT or NO_TARGET. Unlike every other tool here, the percent and the \
+                    InBaseCurrency amounts are already converted to the portfolio's base currency — a \
+                    share of the whole portfolio cannot be stated otherwise. A target is the user's own \
+                    intent, not advice: report the gap, do not recommend the trade unless asked.""",
+            annotations = @McpTool.McpAnnotations(
+                    title = "Allocation targets",
+                    readOnlyHint = true, destructiveHint = false, idempotentHint = true, openWorldHint = false))
+    public String getAllocationTargets(
+            @McpToolParam(description = "Portfolio id from list_portfolios", required = true)
+            String portfolioId) {
+        return api.get("/api/v1/ai/{portfolioId}/allocation-targets", portfolioId);
+    }
+
     @McpTool(name = "get_diversification",
             description = """
                     How the portfolio's value splits across countries, sectors, industries and individual \

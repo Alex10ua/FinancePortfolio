@@ -1,7 +1,7 @@
 # portfolio-mcp-server
 
 Read-only MCP server over FinancePortfolio. It logs in to the Spring backend and
-exposes its `/api/v1/ai/**` endpoints as 17 tools.
+exposes its `/api/v1/ai/**` endpoints as 18 tools.
 
 No write path exists: the HTTP client class offers only `get(...)`, every backend
 endpoint it calls is a `@GetMapping`, and each tool declares `readOnlyHint`. The
@@ -217,6 +217,7 @@ protocol.
 | `list_portfolios` | Which portfolios exist, and in what currencies |
 | `get_portfolio_snapshot` | Whole portfolio: positions, cash, totals, realized P&L |
 | `get_positions` | Holdings only |
+| `get_allocation_targets` | Target weight per ticker vs actual, drift, and the trade that closes it |
 | `get_diversification` | Value by country / sector / industry / ticker |
 | `get_tags` | Holdings grouped by the user's own tags |
 | `get_transactions` | Filtered, paged history |
