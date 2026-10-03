@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug only: plain HTTP to a backend on the development PC, from the emulator
+     (http://10.0.2.2:8080) or from a phone under `adb reverse tcp:8080 tcp:8080`
+     (http://localhost:8080). Release builds use the HTTPS-only config in src/main. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HTTPS only. The backend has to sit behind a real certificate, e.g. `tailscale serve`
+     on the PC (MagicDNS name), so no cleartext exception is needed. The debug build adds
+     one for the emulator and adb reverse (src/debug/res/xml). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>
