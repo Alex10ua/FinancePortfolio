@@ -22,8 +22,9 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- * The backend's session-cookie API: GETs, plus [post] for the app's one write (a new
- * transaction). Add another write only on purpose.
+ * The backend's session-cookie API: GETs, plus [post]/[put]/[delete] for the app's
+ * writes, which are a new transaction and the watchlist's add / target yield / remove.
+ * Add another write only on purpose.
  *
  * Auth is Spring form login: `POST /login` with `username`/`password` answers 200 and sets
  * JSESSIONID; any request without a live session answers 401 (HttpStatusEntryPoint). A
@@ -111,11 +112,19 @@ class ApiClient(
      * at most twice, and the second time only after a 401: Spring answers that from its
      * filter chain before any controller runs, so nothing was stored by the first.
      */
-    suspend fun post(segments: List<String>, json: String): String {
+    suspend fun post(segments: List<String>, json: String): String = write("POST", segments, json)
+
+    /** PUT, with the same single-send rule as [post]. */
+    suspend fun put(segments: List<String>, json: String): String = write("PUT", segments, json)
+
+    /** DELETE, with the same single-send rule as [post]. */
+    suspend fun delete(segments: List<String>): String = write("DELETE", segments, null)
+
+    private suspend fun write(method: String, segments: List<String>, json: String?): String {
         val request = Request.Builder()
             .url(apiUrl(segments, emptyMap()))
             .header("Accept", "application/json")
-            .post(json.toRequestBody(JSON))
+            .method(method, json?.toRequestBody(JSON))
             .build()
 
         val generation = loginGeneration

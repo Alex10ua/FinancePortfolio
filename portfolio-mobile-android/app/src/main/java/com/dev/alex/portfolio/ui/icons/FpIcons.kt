@@ -37,6 +37,19 @@ object FpIcons {
     val Menu by lazy { icon("menu", "M4 6h16M4 12h16M4 18h16") }
     val X by lazy { icon("x", "M6 6l12 12M18 6 6 18") }
     val Plus by lazy { icon("plus", "M12 5v14M5 12h14") }
+    val Minus by lazy { icon("minus", "M5 12h14") }
+    val Trash by lazy {
+        icon("trash", "M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6")
+    }
+    val Diamond by lazy { icon("diamond", "M6 3h12l4 6-10 12L2 9l4-6Z") }
+    val Hash by lazy { icon("hash", "M4 9h16M4 15h16M10 3 8 21M16 3l-2 18") }
+    val Building by lazy {
+        icon(
+            "building",
+            "M5 3h14a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z",
+            "M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01M10 21v-4h4v4",
+        )
+    }
     val ChevDown by lazy { icon("chevDown", "m6 9 6 6 6-6") }
     val ChevUp by lazy { icon("chevUp", "m6 15 6-6 6 6") }
     val ChevRight by lazy { icon("chevRight", "m9 6 6 6-6 6") }

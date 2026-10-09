@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -88,13 +89,16 @@ fun FpIcon(icon: ImageVector, size: Dp = 16.dp, tint: Color = Fp.colors.textMute
     Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = modifier.size(size))
 }
 
-/** Letter avatar — every ticker and portfolio icon in the mockups. */
+/**
+ * Letter avatar: the mockups' portfolio and user icon, round by default. Tickers pass
+ * [TickerShape] so a missing logo matches the square logo tiles next to it.
+ */
 @Composable
-fun Avatar(letter: String, size: Dp = 28.dp, color: Color = Brand.Primary) {
+fun Avatar(letter: String, size: Dp = 28.dp, color: Color = Brand.Primary, shape: Shape = CircleShape) {
     Box(
         modifier = Modifier
             .size(size)
-            .clip(CircleShape)
+            .clip(shape)
             .background(color),
         contentAlignment = Alignment.Center,
     ) {

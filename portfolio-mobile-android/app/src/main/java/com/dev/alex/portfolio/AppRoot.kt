@@ -26,13 +26,16 @@ import com.dev.alex.portfolio.ui.calendar.DividendCalendarScreen
 import com.dev.alex.portfolio.ui.dashboard.DashboardScreen
 import com.dev.alex.portfolio.ui.dividends.DividendsScreen
 import com.dev.alex.portfolio.ui.holdings.HoldingsScreen
+import com.dev.alex.portfolio.ui.ownership.OwnershipScreen
 import com.dev.alex.portfolio.ui.portfolios.PortfolioListScreen
 import com.dev.alex.portfolio.ui.selffunding.SelfFundingScreen
 import com.dev.alex.portfolio.ui.shell.ShellNav
+import com.dev.alex.portfolio.ui.statistics.StatisticsScreen
 import com.dev.alex.portfolio.ui.theme.FinanceTheme
 import com.dev.alex.portfolio.ui.theme.Fp
 import com.dev.alex.portfolio.ui.transactions.NewTransactionScreen
 import com.dev.alex.portfolio.ui.transactions.TransactionsScreen
+import com.dev.alex.portfolio.ui.watchlist.WatchlistScreen
 
 @Composable
 fun AppRoot(vm: AppViewModel = viewModel()) {
@@ -112,6 +115,9 @@ private fun Pages(vm: AppViewModel, ready: AuthState.Ready, dark: Boolean) {
             is Screen.Dividends -> DividendsScreen(screen.portfolioId, nav)
             is Screen.Calendar -> DividendCalendarScreen(screen.portfolioId, nav)
             is Screen.SelfFunding -> SelfFundingScreen(screen.portfolioId, nav)
+            is Screen.Ownership -> OwnershipScreen(screen.portfolioId, nav)
+            is Screen.Watchlist -> WatchlistScreen(screen.portfolioId, nav)
+            is Screen.Statistics -> StatisticsScreen(screen.portfolioId, nav)
             is Screen.NewTransaction -> NewTransactionScreen(screen, nav)
         }
     }

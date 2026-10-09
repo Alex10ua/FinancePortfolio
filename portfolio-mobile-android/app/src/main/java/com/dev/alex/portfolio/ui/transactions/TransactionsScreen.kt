@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -27,18 +26,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dev.alex.portfolio.AppContainer
-import com.dev.alex.portfolio.Screen
 import com.dev.alex.portfolio.data.StaleTracker
 import com.dev.alex.portfolio.data.api.TransactionDto
 import com.dev.alex.portfolio.domain.Direction
@@ -62,6 +56,8 @@ import com.dev.alex.portfolio.ui.components.FpCard
 import com.dev.alex.portfolio.ui.components.FpIcon
 import com.dev.alex.portfolio.ui.components.FpTextField
 import com.dev.alex.portfolio.ui.components.HSpace
+import com.dev.alex.portfolio.ui.components.TickerAvatar
+import com.dev.alex.portfolio.ui.components.TickerShape
 import com.dev.alex.portfolio.ui.components.TypeBadge
 import com.dev.alex.portfolio.ui.components.VSpace
 import com.dev.alex.portfolio.ui.icons.FpIcons
@@ -176,31 +172,15 @@ fun TransactionsScreen(portfolioId: String, nav: ShellNav) {
                 // keeps the pager clear of the FAB at the end of the scroll
                 VSpace(64.dp)
             }
-            AddFab(
-                onClick = { nav.push(Screen.NewTransaction(portfolioId)) },
+            AddTransactionFab(
+                portfolioId = portfolioId,
+                nav = nav,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .navigationBarsPadding()
                     .padding(18.dp),
             )
         }
-    }
-}
-
-/** The mockup's `MobFab`: 48dp primary circle with a plus, bottom right. */
-@Composable
-private fun AddFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .size(48.dp)
-            .shadow(10.dp, CircleShape)
-            .clip(CircleShape)
-            .background(Brand.Primary)
-            .clickable(onClickLabel = "Add transaction", onClick = onClick)
-            .semantics { contentDescription = "Add transaction" },
-    ) {
-        FpIcon(FpIcons.Plus, size = 20.dp, tint = Color.White)
     }
 }
 
@@ -229,6 +209,8 @@ private fun TransactionRow(tx: TransactionDto) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
+        TransactionIcon(tx.transactionType, ticker, tx.assetType)
+        HSpace(10.dp)
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TypeBadge(tx.transactionType ?: "—")
@@ -265,6 +247,30 @@ private fun TransactionRow(tx: TransactionDto) {
             style = FpType.mono(13.sp, FontWeight.SemiBold, tone),
             maxLines = 1,
         )
+    }
+}
+
+/**
+ * The ticker's logo tile. A deposit or withdrawal books under its currency code
+ * ("EUR"), which is no company, so it gets a wallet in the same square instead.
+ */
+@Composable
+private fun TransactionIcon(type: String?, ticker: String?, assetType: String?) {
+    val cash = type == "DEPOSIT" || type == "WITHDRAWAL"
+    if (ticker != null && !cash) {
+        TickerAvatar(ticker, size = 32.dp, color = Brand.Primary, assetType = assetType)
+        return
+    }
+    val colors = Fp.colors
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(32.dp)
+            .clip(TickerShape)
+            .background(colors.surfaceMuted)
+            .border(1.dp, colors.border, TickerShape),
+    ) {
+        FpIcon(FpIcons.Wallet, size = 16.dp, tint = colors.textMuted)
     }
 }
 

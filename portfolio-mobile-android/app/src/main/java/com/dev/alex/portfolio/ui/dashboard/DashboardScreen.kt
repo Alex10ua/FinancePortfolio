@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -39,15 +41,14 @@ import com.dev.alex.portfolio.domain.DashboardStats
 import com.dev.alex.portfolio.domain.Holding
 import com.dev.alex.portfolio.domain.ValuePoint
 import com.dev.alex.portfolio.domain.assetTypeCounts
+import com.dev.alex.portfolio.domain.barScaleMax
 import com.dev.alex.portfolio.domain.currencyContextFor
 import com.dev.alex.portfolio.domain.currencySymbol
 import com.dev.alex.portfolio.domain.dashboardStats
-import com.dev.alex.portfolio.domain.driftOf
 import com.dev.alex.portfolio.domain.formatNumber
 import com.dev.alex.portfolio.domain.formatPercent
 import com.dev.alex.portfolio.domain.formatShares
 import com.dev.alex.portfolio.domain.formatSignedPercent
-import com.dev.alex.portfolio.domain.formatTarget
 import com.dev.alex.portfolio.domain.normalize
 import com.dev.alex.portfolio.domain.portfolioPercents
 import com.dev.alex.portfolio.domain.prefsFor
@@ -69,10 +70,10 @@ import com.dev.alex.portfolio.ui.components.FpLabel
 import com.dev.alex.portfolio.ui.components.HSpace
 import com.dev.alex.portfolio.ui.components.Segmented
 import com.dev.alex.portfolio.ui.components.StatCell
+import com.dev.alex.portfolio.ui.components.TargetWeight
 import com.dev.alex.portfolio.ui.components.TickerAvatar
 import com.dev.alex.portfolio.ui.components.Trend
 import com.dev.alex.portfolio.ui.components.VSpace
-import com.dev.alex.portfolio.ui.components.driftColor
 import com.dev.alex.portfolio.ui.icons.FpIcons
 import com.dev.alex.portfolio.ui.shell.MobileShell
 import com.dev.alex.portfolio.ui.shell.ShellNav
@@ -80,6 +81,7 @@ import com.dev.alex.portfolio.ui.theme.Brand
 import com.dev.alex.portfolio.ui.theme.Fp
 import com.dev.alex.portfolio.ui.theme.FpType
 import com.dev.alex.portfolio.ui.theme.gainLoss
+import com.dev.alex.portfolio.ui.transactions.AddTransactionFab
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
@@ -95,6 +97,8 @@ data class DashboardData(
     val cash: List<CashHoldingDto>,
     /** DEPOSIT − WITHDRAWAL per currency, shown only when no manual cash is entered */
     val cashBalance: Map<String, Double>,
+    /** shared scale of the weight bars without a target */
+    val barScale: Double,
 )
 
 class DashboardViewModel(app: AppContainer, private val portfolioId: String) : LoadViewModel<DashboardData>(app) {
@@ -113,17 +117,20 @@ class DashboardViewModel(app: AppContainer, private val portfolioId: String) : L
         val prefs = settingsCall.await().prefsFor(portfolioId)
         val ctx = currencyContextFor(prefs, holdings, rates)
         val cash = cashCall.await()
+        val percents = portfolioPercents(holdings, ctx)
+        // a target on a ticker no longer held is stale (the backend drops it on sale)
+        val targets = prefs.targets.filterKeys { ticker -> holdings.any { it.ticker == ticker } }
         DashboardData(
             holdings = sortedByValue(holdings, ctx),
             ctx = ctx,
             stats = dashboardStats(holdings, ctx, cash, realizedCall.await()),
-            percents = portfolioPercents(holdings, ctx),
-            // a target on a ticker no longer held is stale (the backend drops it on sale)
-            targets = prefs.targets.filterKeys { ticker -> holdings.any { it.ticker == ticker } },
+            percents = percents,
+            targets = targets,
             series = valueSeries(historyCall.await(), ctx),
             defaultRange = prefs.chartRange?.takeIf { it in CHART_RANGES } ?: "YTD",
             cash = cash.filter { it.amount != 0.0 },
             cashBalance = balanceCall.await().mapNotNull { (k, v) -> v?.takeIf { it != 0.0 }?.let { k to it } }.toMap(),
+            barScale = barScaleMax(percents.values, targets.values),
         )
     }
 }
@@ -140,20 +147,32 @@ fun DashboardScreen(portfolioId: String, nav: ShellNav) {
         title = nav.portfolioName(portfolioId),
         subtitle = data?.let { "${it.holdings.size} assets · in ${it.ctx.base}" },
     ) {
-        PageBody(state, onRefresh = { vm.refresh(force = true) }) { loaded ->
-            if (loaded.holdings.isEmpty()) {
-                EmptyState(FpIcons.Pie, "No holdings yet", "Add a transaction in the web app to get started.")
-                return@PageBody
-            }
-            HeroCard(loaded)
-            VSpace(12.dp)
-            if (loaded.series.size > 1) {
-                ValueChartCard(loaded)
+        Box(Modifier.fillMaxSize()) {
+            PageBody(state, onRefresh = { vm.refresh(force = true) }) { loaded ->
+                if (loaded.holdings.isEmpty()) {
+                    EmptyState(FpIcons.Pie, "No holdings yet", "Tap + to add your first transaction.")
+                    return@PageBody
+                }
+                // the mockup's (and the desktop's) order: KPIs → cash → chart → holdings
+                HeroCard(loaded)
                 VSpace(12.dp)
+                CashCard(loaded)
+                if (loaded.series.size > 1) {
+                    ValueChartCard(loaded)
+                    VSpace(12.dp)
+                }
+                HoldingsCard(loaded)
+                // keeps the last card clear of the FAB at the end of the scroll
+                VSpace(64.dp)
             }
-            HoldingsCard(loaded)
-            VSpace(12.dp)
-            CashCard(loaded)
+            AddTransactionFab(
+                portfolioId = portfolioId,
+                nav = nav,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(18.dp),
+            )
         }
     }
 }
@@ -305,30 +324,52 @@ private fun HoldingRow(h: Holding, data: DashboardData) {
                 }
             }
         }
-        VSpace(9.dp)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            val portText = when {
-                percent == null -> "—"
-                target != null -> "${formatNumber(percent, 1)}%/${formatTarget(target)}%"
-                else -> "${formatNumber(percent, 1)}%"
-            }
-            val portColor = if (percent != null && target != null) colors.driftColor(driftOf(percent, target)) else colors.text
-            StatCell("% Port.", portText, portColor, Modifier.weight(1f))
+        // every desktop column, three to a row
+        VSpace(10.dp)
+        val income = (h.dividend ?: 0.0) * h.shareAmount
+        val dividendYield = h.dividendYield
+        val yieldOnCost = h.dividendYieldOnCost
+        val day = h.dayChangePercent
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCell("Shares", formatShares(h.shareAmount), modifier = Modifier.weight(1f))
-            val dividendYield = h.dividendYield
+            StatCell(
+                "Avg price",
+                h.costPerShare?.let { ctx.money(it, currency) } ?: "—",
+                if (h.costPerShare == null) colors.textSubtle else colors.text,
+                Modifier.weight(1f),
+            )
+            // yearly income of the whole position, as the desktop Dividends column
+            StatCell(
+                "Dividends",
+                if (income > 0) ctx.money(income, currency) else "—",
+                if (income > 0) colors.text else colors.textSubtle,
+                Modifier.weight(1f),
+            )
+        }
+        VSpace(9.dp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCell(
                 "Yield",
                 if (dividendYield != null && dividendYield > 0) formatPercent(dividendYield) else "—",
                 if (dividendYield != null && dividendYield > 0) colors.text else colors.textSubtle,
                 Modifier.weight(1f),
             )
-            val day = h.dayChangePercent
             StatCell(
-                "1D",
+                "Yield on cost",
+                if (yieldOnCost != null && yieldOnCost > 0) formatPercent(yieldOnCost) else "—",
+                if (yieldOnCost != null && yieldOnCost > 0) colors.text else colors.textSubtle,
+                Modifier.weight(1f),
+            )
+            StatCell(
+                "Daily change",
                 formatSignedPercent(day),
                 if (day == null) colors.textSubtle else colors.gainLoss(day),
                 Modifier.weight(1f),
             )
+        }
+        if (percent != null) {
+            VSpace(10.dp)
+            TargetWeight("% of portfolio", percent, target, data.barScale)
         }
     }
 }
@@ -412,4 +453,6 @@ private fun CashCard(data: DashboardData) {
             )
         }
     }
+    // the gap travels with the card: no cash, no card, no double gap above Holdings
+    VSpace(12.dp)
 }

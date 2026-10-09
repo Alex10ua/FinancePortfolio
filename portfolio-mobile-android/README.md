@@ -1,10 +1,13 @@
 # FinancePortfolio — Android
 
 A native Android client (Kotlin and Jetpack Compose) for the FinancePortfolio backend. It
-shows your data and changes nothing: every request is a `GET`, and the app has no create or
-edit actions.
+shows your data. It can make two kinds of change:
+- add a transaction;
+- add, retarget and remove watchlist tickers.
 
-The app has 8 screens. Each one is a port of a mobile mockup in
+It can't edit or delete transactions.
+
+The app has 11 screens. Each one is a port of a mobile mockup in
 `portfolio-design/project/src/`:
 
 | Screen | Mockup |
@@ -14,9 +17,13 @@ The app has 8 screens. Each one is a port of a mobile mockup in
 | Dashboard | `responsive.jsx` → `MobileDashboard` (the drawer is the desktop sidebar) |
 | Holdings | `pages-holdings.jsx` → `MobileHoldings` |
 | Transactions | `responsive.jsx` → `MobileTransactions` |
+| Add Transaction (the **+** on Transactions and Dashboard) | `component-sheet.jsx` → the "Add Transaction" dialog, full-screen |
 | Dividends | `responsive-dividends.jsx` → `MobileDividends` |
 | Dividend Calendar | `responsive-dividends.jsx` → `MobileDividendCalendar` |
 | Self-Funding | `pages-selffunding.jsx` → `MobileSelfFunding` |
+| Ownership, with What-if | `responsive-more.jsx` → `MobileOwnership` |
+| Watchlist and Yield Target | `responsive-more.jsx` → `MobileWatchlist` |
+| Statistics | `responsive-more.jsx` → `MobileStatistics` |
 
 Other web pages have no mobile mockup yet, so the drawer leaves them out. Under the repo's
 design-first rule, each of those pages needs a mockup before it is built.
@@ -88,6 +95,23 @@ Either way, the backend needs no changes. CORS only applies to browsers; OkHttp 
 - **Log out.** Logging out removes the saved sign-in, the session, the offline cache and
   every screen's in-memory data. Android backups are disabled.
 
+## Adding a transaction
+
+Tap **+** on the Transactions or Dashboard screen. The form has the same choices as the web's
+"Create New Transaction" dialog:
+- **Stock:** buy, sell, dividend or tax.
+- **Crypto:** buy or sell.
+- **Custom:** buy or sell, picked from the portfolio's existing custom assets.
+- **Cash:** deposit or withdrawal.
+
+Typing a ticker searches the tickers the backend already knows. You can also enter one it
+hasn't seen yet; the backend then fetches its market data, which can take a few seconds
+on that first trade.
+
+The app never sends a transaction twice on its own. If it gets no answer, it says so and
+asks you to check Transactions before saving again, because the first attempt may already
+have been stored. After a save, every screen reloads.
+
 ## Offline
 
 Every successful `GET` is saved as raw JSON in app-private storage (`ResponseCache`). When
@@ -121,17 +145,19 @@ The `domain/` package ports the web client's logic, so the two must stay in step
 | the Dividends and Dividend Calendar pages | `DividendMath.kt`, `CalendarMath.kt` |
 | the dashboard's `rangeStartMonth` | `PortfolioMath.kt` |
 
-Ticker logos come from the web client's `portfolio-app-frontend/public/images/` folder,
-which the build packages into the app as-is. A logo added there for the web appears in
-the app on its next build. A ticker without a file shows its letter instead.
+Ticker logos are downloaded from Parqet's public logo service
+(`assets.parqet.com`), the same source the web app falls back to. Each request sends only
+the ticker, never your login or amounts. Logos are kept on the phone for a day, and longer
+when you're offline, and they're deleted when you log out. A ticker Parqet doesn't know
+shows its letter instead.
 
 The API sends every amount in its own currency. The app converts amounts with the rates
 from `/fx-rates`, exactly as the web client does.
 
 ## Not in this version
 
-- **Writing anything.** The mockups' "+" buttons (new transaction, new portfolio) are left
-  out rather than added as buttons that do nothing.
+- **Editing or deleting transactions, creating portfolios or custom assets.** These stay in
+  the web app. The **+** button only adds a transaction.
 - **The notification bell.** The backend has no alerts.
 - **A ticker detail view.** On the web, tapping a holding opens `HoldingDetailDialog`.
 - **Release signing.** Release builds are signed with the debug key, which is fine for

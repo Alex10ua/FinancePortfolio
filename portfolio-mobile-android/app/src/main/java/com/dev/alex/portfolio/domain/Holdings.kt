@@ -29,6 +29,8 @@ data class Holding(
     val quoteCurrency: String?,
     /** the price as quoted, before conversion — what the 52-week range is measured in */
     val quoteShareValue: Double?,
+    /** shares outstanding (circulating supply for a coin); null for custom assets */
+    val sharesOutstanding: Long? = null,
 ) {
     /** prefer the backend's BigDecimal product; fall back for legacy rows */
     val totalValue: Double get() = currentTotalValue ?: ((currentShareValue ?: 0.0) * shareAmount)
@@ -105,6 +107,7 @@ fun HoldingDto.normalize(rates: FxRates): Holding {
         currency = book,
         quoteCurrency = quote,
         quoteShareValue = currentShareValue,
+        sharesOutstanding = sharesOutstanding,
     )
 }
 

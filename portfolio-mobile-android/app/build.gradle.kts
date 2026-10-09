@@ -40,15 +40,6 @@ android {
     buildFeatures {
         compose = true
     }
-
-    // Ticker logos are the web client's files, packaged as-is (asset root, `{TICKER}_icon.png`)
-    // rather than copied, so a logo added for the web shows up here on the next build.
-    // A missing folder is skipped silently and every ticker falls back to its letter avatar.
-    sourceSets {
-        getByName("main") {
-            assets.srcDir(rootProject.file("../portfolio-app-frontend/public/images"))
-        }
-    }
 }
 
 kotlin {

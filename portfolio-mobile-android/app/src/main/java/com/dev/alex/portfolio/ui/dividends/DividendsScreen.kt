@@ -220,14 +220,20 @@ private fun BatchNote(data: DividendsData) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 batch.moves.forEach { move ->
                     val tone = if (move.sell) colors.loss else colors.gain
-                    Text(
-                        "${if (move.sell) "−" else "+"}${formatShares(move.quantity)} ${move.ticker}",
-                        style = FpType.mono(11.sp, FontWeight.SemiBold, tone),
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
                             .background(if (move.sell) colors.lossBg else colors.gainBg)
-                            .padding(horizontal = 7.dp, vertical = 2.dp),
-                    )
+                            .padding(start = 3.dp, end = 7.dp, top = 3.dp, bottom = 3.dp),
+                    ) {
+                        TickerAvatar(move.ticker, size = 14.dp, color = tone)
+                        HSpace(5.dp)
+                        Text(
+                            "${if (move.sell) "−" else "+"}${formatShares(move.quantity)} ${move.ticker}",
+                            style = FpType.mono(11.sp, FontWeight.SemiBold, tone),
+                        )
+                    }
                 }
             }
         }

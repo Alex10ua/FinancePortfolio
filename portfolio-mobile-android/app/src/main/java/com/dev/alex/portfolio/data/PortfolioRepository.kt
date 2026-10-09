@@ -1,5 +1,6 @@
 package com.dev.alex.portfolio.data
 
+import com.dev.alex.portfolio.data.api.AddToWatchlistRequest
 import com.dev.alex.portfolio.data.api.ApiClient
 import com.dev.alex.portfolio.data.api.ApiJson
 import com.dev.alex.portfolio.data.api.CalendarEntryDto
@@ -15,10 +16,12 @@ import com.dev.alex.portfolio.data.api.PerformancePointDto
 import com.dev.alex.portfolio.data.api.PortfolioDto
 import com.dev.alex.portfolio.data.api.SessionManager
 import com.dev.alex.portfolio.data.api.StatisticsDto
+import com.dev.alex.portfolio.data.api.TargetYieldRequest
 import com.dev.alex.portfolio.data.api.TickerSuggestionDto
 import com.dev.alex.portfolio.data.api.TickerTagsDto
 import com.dev.alex.portfolio.data.api.TransactionDto
 import com.dev.alex.portfolio.data.api.UserSettingsDto
+import com.dev.alex.portfolio.data.api.WatchlistEntryDto
 import com.dev.alex.portfolio.data.api.isOfflineError
 import com.dev.alex.portfolio.data.cache.ResponseCache
 import kotlinx.serialization.KSerializer
@@ -120,6 +123,33 @@ class PortfolioRepository(
         )
         return runCatching { ApiJson.decodeFromString(CreateTransactionResponse.serializer(), body).holdingSynced }
             .getOrDefault(true)
+    }
+
+    suspend fun watchlist(portfolioId: String) =
+        fetch(listOf(portfolioId, "watchlist"), serializer = ListSerializer(WatchlistEntryDto.serializer()))
+
+    /**
+     * Watch a ticker. An unknown symbol is fetched from the provider first, so this can
+     * take seconds. A second add of the same ticker answers 400 "already on this
+     * watchlist", so a repeat can't double it. Blank [targetYield] = 5-year 90th percentile.
+     */
+    suspend fun addToWatchlist(portfolioId: String, ticker: String, targetYield: String?) {
+        api.post(
+            listOf(portfolioId, "watchlist"),
+            ApiJson.encodeToString(AddToWatchlistRequest.serializer(), AddToWatchlistRequest(ticker, targetYield)),
+        )
+    }
+
+    /** Idempotent: the same target sent twice leaves the same row. */
+    suspend fun setTargetYield(portfolioId: String, ticker: String, targetYield: String) {
+        api.put(
+            listOf(portfolioId, "watchlist", ticker),
+            ApiJson.encodeToString(TargetYieldRequest.serializer(), TargetYieldRequest(targetYield)),
+        )
+    }
+
+    suspend fun removeFromWatchlist(portfolioId: String, ticker: String) {
+        api.delete(listOf(portfolioId, "watchlist", ticker))
     }
 
     suspend fun clearCache() = cache.clear()

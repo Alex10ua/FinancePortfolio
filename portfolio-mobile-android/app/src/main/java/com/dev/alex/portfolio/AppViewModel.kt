@@ -34,6 +34,9 @@ sealed interface Screen {
     data class Dividends(override val portfolioId: String) : Screen
     data class Calendar(override val portfolioId: String) : Screen
     data class SelfFunding(override val portfolioId: String) : Screen
+    data class Ownership(override val portfolioId: String) : Screen
+    data class Watchlist(override val portfolioId: String) : Screen
+    data class Statistics(override val portfolioId: String) : Screen
 
     /** The add-transaction form. [openedAt] gives every opening a fresh form (its own view-model). */
     data class NewTransaction(override val portfolioId: String, val openedAt: Long = System.nanoTime()) : Screen
@@ -288,6 +291,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             app.cookies.clear()
             app.credentials.clear()
             app.repository.clearCache()
+            app.logos.clear()
             mutablePortfolios.value = emptyList()
             mutableColors.value = emptyMap()
             mutableAuth.value = signInState()

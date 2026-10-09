@@ -74,7 +74,10 @@ private data class PageLink(val label: String, val icon: ImageVector, val make: 
 private val PAGES = listOf(
     PageLink("Dashboard", FpIcons.Home) { Screen.Dashboard(it) },
     PageLink("Holdings", FpIcons.Pie) { Screen.Holdings(it) },
+    PageLink("Ownership", FpIcons.Diamond) { Screen.Ownership(it) },
     PageLink("Self-Funding", FpIcons.Target) { Screen.SelfFunding(it) },
+    PageLink("Watchlist", FpIcons.Eye) { Screen.Watchlist(it) },
+    PageLink("Statistics", FpIcons.Hash) { Screen.Statistics(it) },
     PageLink("Transactions", FpIcons.Rows) { Screen.Transactions(it) },
     PageLink("Dividends", FpIcons.Coins) { Screen.Dividends(it) },
     PageLink("Dividend Calendar", FpIcons.Calendar) { Screen.Calendar(it) },

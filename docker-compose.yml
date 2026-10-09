@@ -26,7 +26,6 @@ services:
       - MONGO_URI=mongodb://root:secret@mongodb:27017/
       - MASSIVE_API_KEY=${MASSIVE_API_KEY}
       - MASSIVE_BASE_URL=${MASSIVE_BASE_URL}
-      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
       # yfinance timezone cache — on a volume so a container recreate doesn't make
       # every ticker pay an extra Yahoo request for its exchange timezone again
       - YF_CACHE_DIR=/cache/yfinance

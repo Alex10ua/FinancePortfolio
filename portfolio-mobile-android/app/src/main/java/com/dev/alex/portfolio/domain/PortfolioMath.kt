@@ -205,6 +205,16 @@ fun driftOf(current: Double, target: Double): Drift = when {
     else -> Drift.On
 }
 
+/**
+ * One scale for every weight bar without a target, so rows stay comparable: the largest
+ * weight or target in view, rounded up to 5, never under 10% (a flat portfolio would
+ * otherwise read all-full). Same rule as the web dashboard's `barScaleMax`.
+ */
+fun barScaleMax(percents: Collection<Double>, targets: Collection<Double>): Double {
+    val peak = (percents + targets).maxOrNull() ?: 0.0
+    return maxOf(10.0, kotlin.math.ceil(peak / 5) * 5)
+}
+
 /** "20" or "12.5" — targets print without a pointless ".0". */
 fun formatTarget(value: Double): String {
     val rounded = Math.round(value * 10) / 10.0
